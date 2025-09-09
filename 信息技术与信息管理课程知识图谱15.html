@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信息技术与信息管理课程知识图谱</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-height: 700px;
+            overflow-y: auto;
+        }
+        
+        .graph-container {
+            flex: 3;
+            min-width: 600px;
+            height: 700px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        
+        #knowledge-graph {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .search-box {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: #4a86e8;
+            outline: none;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 200;
+        }
+        
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .search-result-item:hover {
+            background-color: #f5f7fb;
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+        }
+        
+        .control-section h3 {
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4a86e8;
+            color: #2c3e50;
+        }
+        
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .filter-options label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        
+        .filter-options input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .node-details {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            display: none;
+            max-height: 80%;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        
+        .node-details h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4a86e8;
+        }
+        
+        .node-details p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .detail-section h4 {
+            margin-bottom: 10px;
+            color: #4a86e8;
+        }
+        
+        .related-nodes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .related-node {
+            background: #e1e8f7;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .related-node:hover {
+            background: #c5d0e8;
+        }
+        
+        .media-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .media-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f5f7fb;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #2c3e50;
+            transition: background 0.3s;
+        }
+        
+        .media-link:hover {
+            background: #e1e8f7;
+        }
+        
+        .close-details {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #777;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        
+        .relation-legend {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .relation-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .relation-color {
+            width: 20px;
+            height: 4px;
+        }
+        
+        .toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .toolbar button {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: #4a86e8;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        
+        .toolbar button:hover {
+            background: #3a76d8;
+        }
+        
+        .node {
+            cursor: pointer;
+            transition: r 0.3s, filter 0.3s;
+        }
+        
+        .node:hover {
+            r: 12px;
+            filter: brightness(1.2);
+        }
+        
+        .node-text {
+            font-size: 12px;
+            pointer-events: none;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px white;
+        }
+        
+        .link {
+            stroke-opacity: 0.6;
+            stroke-width: 2;
+        }
+        
+        .link-label {
+            font-size: 10px;
+            fill: #666;
+            text-shadow: 1px 1px 2px white;
+        }
+        
+        .node.highlighted {
+            r: 14px;
+            stroke: #ffcc00;
+            stroke-width: 3px;
+            filter: brightness(1.3);
+        }
+        
+        .node-text.highlighted {
+            font-weight: bold;
+            font-size: 14px;
+            fill: #d9534f;
+        }
+        
+        @media (max-width: 1000px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .graph-container {
+                min-width: 100%;
+                height: 600px;
+            }
+            
+            .node-details {
+                width: 300px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .graph-container {
+                height: 500px;
+            }
+            
+            .control-panel {
+                max-height: 400px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .node-details {
+                width: 250px;
+                right: 10px;
+            }
+            
+            .toolbar {
+                bottom: 10px;
+                left: 10px;
+            }
+            
+            .toolbar button {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .graph-container {
+                height: 450px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .graph-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>信息技术与信息管理课程知识图谱</h1>
+            <p class="subtitle">可视化展示信息管理领域的核心概念、技术与应用</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="control-panel">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索节点...">
+                    <div class="search-results" id="search-results"></div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>知识领域筛选</h3>
+                    <div class="filter-options" id="domain-filters">
+                        <label><input type="checkbox" name="domain" value="core" checked> 信息基础理论</label>
+                        <label><input type="checkbox" name="domain" value="method" checked> 技术方法</label>
+                        <label><input type="checkbox" name="domain" value="application" checked> 应用领域</label>
+                        <label><input type="checkbox" name="domain" value="technology" checked> 信息技术</label>
+                        <label><input type="checkbox" name="domain" value="trend" checked> 发展趋势</label>
+                        <label><input type="checkbox" name="domain" value="principle" checked> 基本原则</label>
+                        <label><input type="checkbox" name="domain" value="process" checked> 处理流程</label>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>关系类型筛选</h3>
+                    <div class="filter-options" id="relation-filters">
+                        <!-- 关系类型筛选将动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>图谱操作</h3>
+                    <div class="filter-options" id="graph-controls">
+                        <label><input type="checkbox" id="show-links" checked> 显示连接线</label>
+                        <label><input type="checkbox" id="show-labels" checked> 显示标签</label>
+                        <label><input type="checkbox" id="show-link-labels"> 显示关系标签</label>
+                        <label><input type="checkbox" id="auto-layout"> 自动布局</label>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>节点图例</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #1f77b4;"></div>
+                            <span>核心概念</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ff7f0e;"></div>
+                            <span>技术方法</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #2ca02c;"></div>
+                            <span>应用领域</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #d62728;"></div>
+                            <span>信息技术</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #9467bd;"></div>
+                            <span>发展趋势</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #8c564b;"></div>
+                            <span>基本原则</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #e377c2;"></div>
+                            <span>处理流程</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>关系图例</h3>
+                    <div class="relation-legend" id="relation-legend">
+                        <!-- 关系图例将动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="graph-container">
+                <svg id="knowledge-graph"></svg>
+                <div class="toolbar">
+                    <button id="zoom-in"><i class="fas fa-search-plus"></i></button>
+                    <button id="zoom-out"><i class="fas fa-search-minus"></i></button>
+                    <button id="reset-view"><i class="fas fa-sync-alt"></i></button>
+                    <button id="center-graph"><i class="fas fa-expand"></i></button>
+                </div>
+                <div class="node-details">
+                    <span class="close-details">&times;</span>
+                    <h2 id="detail-title">节点标题</h2>
+                    <div class="detail-section">
+                        <h4>类型</h4>
+                        <p id="detail-type">节点类型</p>
+                    </div>
+                    <div class="detail-section">
+                        <h4>描述</h4>
+                        <p id="detail-description">节点描述内容将显示在这里...</p>
+                    </div>
+                    <div class="detail-section">
+                        <h4>相关节点</h4>
+                        <div class="related-nodes" id="related-nodes">
+                            <!-- 相关节点链接将在这里动态生成 -->
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4>学习资源</h4>
+                        <div class="media-links">
+                            <a href="#" class="media-link"><i class="fas fa-video"></i> 视频讲解</a>
+                            <a href="#" class="media-link"><i class="fas fa-headphones"></i> 音频讲解</a>
+                            <a href="#" class="media-link"><i class="fas fa-file-pdf"></i> PDF文档</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 知识图谱数据 - 根据文件内容整理
+        const graphData = {
+            nodes: [
+                // 信息基础理论
+                { id: 1, name: "信息", type: "core", description: "信息是指音讯、消息、通信系统传输和处理的对象，泛指人类社会传播的一切内容。信息的概念最早由香农提出，核心是'消除不确定性'。" },
+                { id: 2, name: "信息的特征", type: "core", description: "信息具有普遍性、客观性、动态性、相对性、依附性、可传递性、可加工性和可共享性等特征。" },
+                { id: 3, name: "信息的分类", type: "core", description: "信息可以根据不同的标准进行分类，如按加工深度分为一次信息、二次信息和三次信息；按人员参与分为参与前信息和参与后信息；按存在方式分为结构化信息和非结构化信息。" },
+                { id: 4, name: "信息组织", type: "core", description: "信息组织的目的就是对大量零散的、无序的、未经加工的信息进行重新组织，方便人们利用和传递。主要包括信息描述、信息揭示、信息分析三个方面。" },
+                { id: 5, name: "信息运动", type: "core", description: "信息一经产生，就开始了其自身在时间和空间上的运动。信息运动具有形式多样性、与载体不可分离性、模糊度、冗余度与重复信息无效性、噪声干扰不可避免性和不可逆性等特点。" },
+                
+                // 信息组织原则
+                { id: 6, name: "及时性", type: "principle", description: "信息是有时效的。信息的使用价值是随时间的流逝与系统的变化而变化的。对于时过境迁的信息要及时记录，对于有用的信息要及时采集。" },
+                { id: 7, name: "可靠性", type: "principle", description: "真实可靠的信息是正确决策的重要保证。在信息组织过程中，必须坚持实事求是的科学态度，采用科学严谨的采集方法。" },
+                { id: 8, name: "适用性", type: "principle", description: "社会信息数量庞大、内容繁杂，而人们的信息需要总是特定的，是有层次、有类型、有范围的。信息采集与组织要有针对性，信息不在于多，在于适用。" },
+                { id: 9, name: "系统性", type: "principle", description: "信息组织的系统性是指信息组织空间上的完整性要求和时间上的连续性要求。包括横向角度与纵向角度。" },
+                { id: 10, name: "经济性", type: "principle", description: "取得信息是要付出代价的。信息的及时性、准确性和适用性必须建立在经济性的基础上。要力求以最少的费用，最大限度地发挥信息的作用。" },
+                { id: 11, name: "先进性", type: "principle", description: "信息要能反映最新的发现、观点、发展、技术和应用领域等。" },
+                
+                // 信息处理流程
+                { id: 12, name: "信息收集", type: "process", description: "信息收集需要遵循真实性、完整性、及时性、针对性、预见性、经济性等基本原则，常用方法包括观察法、调查法、系统法和实验法。" },
+                { id: 13, name: "信息处理", type: "process", description: "信息处理按功能深度分为三级：信息整序（操作层）、分析综合（管理层）、统计推断（战略层）。" },
+                { id: 14, name: "信息存储", type: "process", description: "信息存储是将加工整理后的信息有序存储在特定载体中的活动，旨在积累信息并支持快速识别、定位与检索。" },
+                { id: 15, name: "信息检索", type: "process", description: "信息检索是用户进行信息查询和获取的主要方式，是查找信息的方法和手段，包括数据库检索和互联网检索等技术。" },
+                { id: 16, name: "信息传递", type: "process", description: "信息传递是指由信息的发送源，通过传递信号的通道，将信息传递给信息接收者的过程。未经传递的信息将丧失使用价值。" },
+                { id: 17, name: "信息反馈", type: "process", description: "信息反馈就是将输出信息的作用结果再返送回来的过程，在科学决策过程中起着十分重要的作用，具有滞后性、针对性、及时性和连续性等特点。" },
+                
+                // 信息技术
+                { id: 18, name: "大数据", type: "technology", description: "大数据是一种规模庞大、类型多样、高速产生的数据集，具有海量、高速、多变的特点。大数据的分析和应用能够揭示隐藏的模式、未知的相关性和预测未来的趋势。" },
+                { id: 19, name: "云计算", type: "technology", description: "云计算是基于互联网的超级计算模式，把存储于各种设备上的海量信息及处理器资源集中在一起协同工作，将可扩展的信息技术能力作为服务提供给外部客户。" },
+                { id: 20, name: "人工智能", type: "technology", description: "人工智能是计算机学科的一个分支，是研究开发用于模拟、延伸和扩展人的智能的理论、方法、技术及应用系统的一门新的技术科学。" },
+                { id: 21, name: "区块链", type: "technology", description: "区块链是一种去中心化的分布式账本数据库系统，具有去中心化、信息不可篡改、可追溯性、去信任、匿名性、开放共识等特点。" },
+                { id: 22, name: "物联网", type: "technology", description: "物联网是'物物相连的互联网'，其核心和基础是互联网，它是在互联网基础上延伸和扩展起来的网络，实现智能化识别、定位、跟踪、监控和管理。" },
+                { id: 23, name: "移动互联网", type: "technology", description: "移动互联网是指移动通信终端与互联网结合成一体，用户通过手机、平板电脑等移动终端设备，在移动状态下随时、随地访问互联网获取信息，使用各种网络服务。" },
+                { id: 24, name: "5G技术", type: "technology", description: "第五代移动通信技术，是4G系统的延伸，性能目标是高数据速率、减少延迟、节省能源、降低成本、提高系统容量和大规模设备连接。" },
+                { id: 25, name: "计算机病毒", type: "technology", description: "计算机病毒是指编制或者在计算机程序中插入的破坏计算机功能或者毁坏数据，影响计算机使用，并能自我复制的一组计算机指令或者程序代码。" },
+                
+                // 应用领域
+                { id: 26, name: "信息化", type: "application", description: "信息化是指以信息技术的工具性支撑和创造性应用影响经济社会生产和生活方式的过程。中国信息化建设始于20世纪80年代改革开放初期。" },
+                { id: 27, name: "数字经济", type: "application", description: "数字经济是人类通过大数据的识别、选择、过滤、存储、使用等过程引导、实现资源的快速优化配置与再生，推动经济高质量发展的经济形态。" },
+                { id: 28, name: "知识管理", type: "application", description: "知识管理是以知识作为组织发展的关键因素，采用现代信息技术和管理思想，对知识进行有序整合、有效吸收和传播，不断进行创新，提高组织核心竞争力的过程。" },
+                { id: 29, name: "信息系统", type: "application", description: "信息系统是指依据系统的观点，通过计算机、网络等现代化工具和设备，运用数学的方法，服务于管理领域的人机结合的信息处理系统。" },
+                { id: 30, name: "信息安全", type: "application", description: "信息安全是指信息系统中的软件、硬件和系统中的数据受到保护，不因偶然的或者恶意的攻击而遭到破坏、更改、泄露，系统连续可靠正常地运行，信息服务不中断。" },
+                { id: 31, name: "共享经济", type: "application", description: "共享经济是借助互联网平台重新整合、配置社会闲置资源，以共享商品的使用权来满足客户多样化、个性化需求，同时达到盈利目标的资源配置范式。" },
+                { id: 32, name: "社交商务", type: "application", description: "社交商务是指利用网络社交媒介传播渠道，借助社交互动、用户生成内容等进行品牌或产品推广，实现更有效的流量转化和商品销售的电子商务模式。" },
+                { id: 33, name: "C2M模式", type: "application", description: "消费者直连制造模式是以消费者需求为核心，先有消费者的需求产生，再有企业的生产，通过消除中间环节，实现消费者与制造商的直接连接。" },
+                { id: 34, name: "数字政府", type: "application", description: "数字政府建设聚焦提升治理能力，通过打破壁垒实现政务数据共享提升决策与效能，并推进政务服务网上办理，应用电子证照和印章优化流程。" },
+                { id: 35, name: "智慧城市", type: "application", description: "智慧城市是物联网技术的典型应用，通过物联网、云计算、大数据等新一代信息技术，实现城市各种需求的智能响应，提升城市管理效率和人民生活水平。" },
+                { id: 36, name: "新兴数字市场", type: "application", description: "新兴数字市场是依托数字技术快速崛起并不断发展的新型经济生态系统与电子商务模式，这些模式以用户需求为导向，具有社交化、共享性、线上线下融合等特点。" },
+                
+                // 发展趋势
+                { id: 37, name: "DAO模式", type: "trend", description: "去中心化自治组织模式通过智能合约实现社区的自主管理和资源分配，无须传统意义上的中心化管理机构，社区成员可以共同决定资源的分配和使用规则。" },
+                { id: 38, name: "知识创新", type: "trend", description: "知识创新是指为了企业的卓越、国家经济的繁荣昌盛，以及整个社会的进步，创造、发展、交流和应用新的想法，使之转化为市场适销的商品与服务的活动。" },
+                { id: 39, name: "信息系统建设", type: "trend", description: "信息系统的建设与开发是一项系统工程，需要系统科学的建设开发方法、合理的系统建设目标、精良的系统建设队伍、遵循系统工程的建设开发步骤。" },
+                { id: 40, name: "AI赋能开发", type: "trend", description: "人工智能正逐步渗透到软件开发的各个环节，从需求预测到用户体验优化，AI正在重新定义信息系统开发的工作方式，并为企业提供更敏捷、更智能的解决方案。" },
+                { id: 41, name: "经济信息管理", type: "trend", description: "经济信息是反映经济活动特征及其发展规律的关键性信息资源，其本质是对社会生产生活各领域中资源配置、市场运行和经济发展动态的系统化表征。" },
+                
+                // 技术方法
+                { id: 42, name: "信息描述", type: "method", description: "信息描述是指对信息的表面现象进行全面的阐述，把信息的各方面的数据了解清楚，是对信息的初级组织。" },
+                { id: 43, name: "信息揭示", type: "method", description: "信息揭示是指从信息的现象中找到其固有的本质，是对信息的中级组织。" },
+                { id: 44, name: "信息分析", type: "method", description: "信息分析是对已经本质化的信息进行分析，为利用信息奠定基础，是对信息的高级组织。" },
+                { id: 45, name: "密码技术", type: "method", description: "密码技术是信息安全与保密的核心和关键，包括对称密码体制和非对称密码体制。" },
+                { id: 46, name: "防火墙技术", type: "method", description: "防火墙是一种将内部网和外部网分开的方法，它实际上是一种建立在现代通信网络技术和信息安全技术基础上的应用性安全技术和隔离技术。" },
+                { id: 47, name: "虚拟专用网络", type: "method", description: "虚拟专用网络（VPN）是通过一个公用的网络建立一个临时的安全连接，可以看作一条通过混乱复杂的公用网络的安全、稳定的隧道，是对企业内部网的扩展。" },
+                { id: 48, name: "CSF方法", type: "method", description: "关键成功因素法（CSF）聚焦识别企业成功的关键要素以驱动系统规划。" },
+                { id: 49, name: "BSP方法", type: "method", description: "企业系统规划法（BSP）由IBM提出，核心是将企业目标转化为信息系统架构以支持业务运行。" },
+                { id: 50, name: "SDP方法", type: "method", description: "战略数据规划法（SDP）旨在通过数据治理消除信息孤岛，提升信息价值。" }
+            ],
+            links: [
+                // 信息基础理论关系
+                { source: 1, target: 2, relation: "具有", type: "属性" },
+                { source: 1, target: 3, relation: "可分为", type: "分类" },
+                { source: 1, target: 4, relation: "需要", type: "依赖" },
+                { source: 1, target: 5, relation: "具有", type: "属性" },
+                { source: 4, target: 42, relation: "包括", type: "组成" },
+                { source: 4, target: 43, relation: "包括", type: "组成" },
+                { source: 4, target: 44, relation: "包括", type: "组成" },
+                
+                // 信息组织原则关系
+                { source: 4, target: 6, relation: "遵循", type: "原则" },
+                { source: 4, target: 7, relation: "遵循", type: "原则" },
+                { source: 4, target: 8, relation: "遵循", type: "原则" },
+                { source: 4, target: 9, relation: "遵循", type: "原则" },
+                { source: 4, target: 10, relation: "遵循", type: "原则" },
+                { source: 4, target: 11, relation: "遵循", type: "原则" },
+                
+                // 信息处理流程关系
+                { source: 4, target: 12, relation: "包括", type: "组成" },
+                { source: 4, target: 13, relation: "包括", type: "组成" },
+                { source: 4, target: 14, relation: "包括", type: "组成" },
+                { source: 4, target: 15, relation: "包括", type: "组成" },
+                { source: 4, target: 16, relation: "包括", type: "组成" },
+                { source: 4, target: 17, relation: "包括", type: "组成" },
+                { source: 5, target: 16, relation: "表现为", type: "表现" },
+                { source: 5, target: 17, relation: "包括", type: "组成" },
+                
+                // 信息技术关系
+                { source: 18, target: 19, relation: "依赖", type: "依赖" },
+                { source: 18, target: 20, relation: "驱动", type: "推动" },
+                { source: 19, target: 21, relation: "与", type: "关联" },
+                { source: 19, target: 22, relation: "支持", type: "支持" },
+                { source: 20, target: 29, relation: "赋能", type: "增强" },
+                { source: 20, target: 40, relation: "推动", type: "推动" },
+                { source: 21, target: 37, relation: "实现", type: "实现" },
+                { source: 22, target: 23, relation: "结合", type: "结合" },
+                { source: 22, target: 35, relation: "支撑", type: "支持" },
+                { source: 23, target: 24, relation: "依赖", type: "依赖" },
+                { source: 23, target: 32, relation: "支持", type: "支持" },
+                { source: 24, target: 22, relation: "促进", type: "促进" },
+                { source: 25, target: 30, relation: "威胁", type: "威胁" },
+                
+                // 应用领域关系
+                { source: 26, target: 27, relation: "包含", type: "包含" },
+                { source: 26, target: 29, relation: "依赖", type: "依赖" },
+                { source: 26, target: 34, relation: "包含", type: "包含" },
+                { source: 26, target: 35, relation: "包含", type: "包含" },
+                { source: 27, target: 18, relation: "基于", type: "基础" },
+                { source: 27, target: 31, relation: "包含", type: "包含" },
+                { source: 27, target: 32, relation: "包含", type: "包含" },
+                { source: 27, target: 33, relation: "包含", type: "包含" },
+                { source: 27, target: 36, relation: "包含", type: "包含" },
+                { source: 27, target: 41, relation: "包含", type: "包含" },
+                { source: 28, target: 38, relation: "推动", type: "推动" },
+                { source: 29, target: 30, relation: "需要", type: "需求" },
+                { source: 29, target: 39, relation: "建设", type: "过程" },
+                { source: 31, target: 21, relation: "可能采用", type: "应用" },
+                { source: 33, target: 18, relation: "依赖", type: "依赖" },
+                { source: 34, target: 20, relation: "应用", type: "应用" },
+                { source: 35, target: 22, relation: "基于", type: "基础" },
+                { source: 36, target: 18, relation: "依赖", type: "依赖" },
+                
+                // 发展趋势关系
+                { source: 37, target: 21, relation: "基于", type: "基础" },
+                { source: 38, target: 28, relation: "是", type: "定义" },
+                { source: 39, target: 29, relation: "构建", type: "过程" },
+                { source: 40, target: 20, relation: "基于", type: "基础" },
+                { source: 41, target: 27, relation: "支撑", type: "支持" },
+                
+                // 技术方法关系
+                { source: 12, target: 18, relation: "产生", type: "产出" },
+                { source: 14, target: 19, relation: "利用", type: "使用" },
+                { source: 15, target: 20, relation: "应用", type: "应用" },
+                { source: 16, target: 23, relation: "通过", type: "途径" },
+                { source: 30, target: 25, relation: "防范", type: "防护" },
+                { source: 30, target: 45, relation: "使用", type: "使用" },
+                { source: 30, target: 46, relation: "使用", type: "使用" },
+                { source: 30, target: 47, relation: "使用", type: "使用" },
+                { source: 39, target: 48, relation: "使用", type: "使用" },
+                { source: 39, target: 49, relation: "使用", type: "使用" },
+                { source: 39, target: 50, relation: "使用", type: "使用" }
+            ]
+        };
+
+        // 颜色映射
+        const colorMap = {
+            "core": "#1f77b4",      // 蓝色 - 核心概念
+            "method": "#ff7f0e",    // 橙色 - 技术方法
+            "application": "#2ca02c", // 绿色 - 应用领域
+            "technology": "#d62728", // 红色 - 信息技术
+            "trend": "#9467bd",     // 紫色 - 发展趋势
+            "principle": "#8c564b", // 棕色 - 基本原则
+            "process": "#e377c2"    // 粉色 - 处理流程
+        };
+
+        // 关系类型颜色映射
+        const relationColorMap = {
+            "属性": "#ff0000",
+            "分类": "#00ff00",
+            "依赖": "#0000ff",
+            "组成": "#ffff00",
+            "原则": "#00ffff",
+            "表现": "#ff00ff",
+            "推动": "#ff9900",
+            "支持": "#9900ff",
+            "增强": "#009900",
+            "实现": "#990000",
+            "结合": "#000099",
+            "威胁": "#999900",
+            "包含": "#009999",
+            "基础": "#990099",
+            "需求": "#999999",
+            "过程": "#666600",
+            "应用": "#006666",
+            "定义": "#660066",
+            "防护": "#666666",
+            "使用": "#3366cc",
+            "产出": "#cc6633",
+            "途径": "#33cc66",
+            "关联": "#6633cc",
+            "促进": "#cc3366"
+        };
+
+        // 类型名称映射
+        const typeNames = {
+            "core": "信息基础理论",
+            "method": "技术方法",
+            "application": "应用领域",
+            "technology": "信息技术",
+            "trend": "发展趋势",
+            "principle": "基本原则",
+            "process": "处理流程"
+        };
+
+        // 全局变量
+        let simulation, zoom, g, node, link, text, linkLabels;
+        let currentTransform = d3.zoomIdentity;
+        let lastNodePositions = {};
+        let currentNode = null;
+        let relationTypes = new Set();
+
+        // 初始化图谱
+        function initKnowledgeGraph() {
+            const width = document.getElementById('knowledge-graph').clientWidth;
+            const height = document.getElementById('knowledge-graph').clientHeight;
+            
+            // 清除之前的SVG内容
+            d3.select('#knowledge-graph').selectAll('*').remove();
+            
+            // 创建SVG元素
+            const svg = d3.select('#knowledge-graph')
+                .attr('width', width)
+                .attr('height', height);
+                
+            // 添加缩放和平移支持
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 4])
+                .on('zoom', (event) => {
+                    currentTransform = event.transform;
+                    g.attr('transform', event.transform);
+                });
+                
+            svg.call(zoom);
+            
+            // 创建容器
+            g = svg.append('g');
+            
+            // 创建力导向图模拟
+            simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(50));
+            
+            // 绘制连接线
+            link = g.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(graphData.links)
+                .enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke', d => relationColorMap[d.type] || '#999')
+                .attr('stroke-width', 2);
+            
+            // 添加连线标签
+            linkLabels = g.append('g')
+                .attr('class', 'link-labels')
+                .selectAll('text')
+                .data(graphData.links)
+                .enter().append('text')
+                .attr('class', 'link-label')
+                .text(d => d.relation)
+                .style('display', 'none');
+            
+            // 绘制节点
+            node = g.append('g')
+                .attr('class', 'nodes')
+                .selectAll('circle')
+                .data(graphData.nodes)
+                .enter().append('circle')
+                .attr('class', 'node')
+                .attr('r', 8)
+                .attr('fill', d => colorMap[d.type])
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended))
+                .on('click', showNodeDetails);
+            
+            // 添加节点标签
+            text = g.append('g')
+                .attr('class', 'labels')
+                .selectAll('text')
+                .data(graphData.nodes)
+                .enter().append('text')
+                .attr('class', 'node-text')
+                .text(d => d.name)
+                .attr('text-anchor', 'middle')
+                .attr('dy', -12);
+            
+            // 更新力导向图
+            simulation.on('tick', () => {
+                // 保存节点位置
+                graphData.nodes.forEach(n => {
+                    lastNodePositions[n.id] = { x: n.x, y: n.y };
+                });
+                
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                linkLabels
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+                
+                text
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+            });
+            
+            // 初始化关系类型筛选
+            initRelationFilters();
+            
+            // 工具栏功能
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                svg.transition().duration(500).call(zoom.scaleBy, 1.5);
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                svg.transition().duration(500).call(zoom.scaleBy, 0.75);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+                resetNodeStyles();
+            });
+            
+            document.getElementById('center-graph').addEventListener('click', () => {
+                const bounds = document.getElementById('knowledge-graph').getBBox();
+                const parent = document.getElementById('knowledge-graph').parentElement;
+                const fullWidth = parent.clientWidth;
+                const fullHeight = parent.clientHeight;
+                const width = bounds.width;
+                const height = bounds.height;
+                const midX = bounds.x + width / 2;
+                const midY = bounds.y + height / 2;
+                
+                if (width === 0 || height === 0) return;
+                
+                const scale = 0.85 / Math.max(width / fullWidth, height / fullHeight);
+                const translate = [
+                    fullWidth / 2 - scale * midX,
+                    fullHeight / 2 - scale * midY
+                ];
+                
+                svg.transition().duration(500).call(
+                    zoom.transform,
+                    d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+                );
+            });
+            
+            // 关闭详情面板
+            document.querySelector('.close-details').addEventListener('click', () => {
+                document.querySelector('.node-details').style.display = 'none';
+                resetNodeStyles();
+                currentNode = null;
+            });
+            
+            // 搜索功能
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                searchResults.innerHTML = '';
+                
+                if (searchTerm.length === 0) {
+                    searchResults.style.display = 'none';
+                    resetNodeStyles();
+                    return;
+                }
+                
+                const foundNodes = graphData.nodes.filter(n => 
+                    n.name.toLowerCase().includes(searchTerm) || 
+                    n.description.toLowerCase().includes(searchTerm)
+                );
+                
+                if (foundNodes.length > 0) {
+                    searchResults.style.display = 'block';
+                    foundNodes.forEach(n => {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'search-result-item';
+                        resultItem.textContent = n.name;
+                        resultItem.setAttribute('data-node-id', n.id);
+                        resultItem.addEventListener('click', () => {
+                            searchInput.value = '';
+                            searchResults.style.display = 'none';
+                            focusOnNode(n.id);
+                        });
+                        searchResults.appendChild(resultItem);
+                    });
+                } else {
+                    searchResults.style.display = 'none';
+                }
+                
+                // 高亮匹配节点
+                resetNodeStyles();
+                node.filter(d => foundNodes.some(n => n.id === d.id))
+                    .classed('highlighted', true);
+                text.filter(d => foundNodes.some(n => n.id === d.id))
+                    .classed('highlighted', true);
+            });
+            
+            // 点击其他地方关闭搜索结果
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.style.display = 'none';
+                }
+            });
+            
+            // 知识领域筛选
+            const domainFilters = document.querySelectorAll('#domain-filters input');
+            domainFilters.forEach(filter => {
+                filter.addEventListener('change', applyFilters);
+            });
+            
+            // 关系类型筛选
+            const relationFilters = document.querySelectorAll('#relation-filters input');
+            relationFilters.forEach(filter => {
+                filter.addEventListener('change', applyFilters);
+            });
+            
+            // 图谱操作
+            document.getElementById('show-links').addEventListener('change', function() {
+                link.style('display', this.checked ? 'block' : 'none');
+            });
+            
+            document.getElementById('show-labels').addEventListener('change', function() {
+                text.style('display', this.checked ? 'block' : 'none');
+            });
+            
+            document.getElementById('show-link-labels').addEventListener('change', function() {
+                linkLabels.style('display', this.checked ? 'block' : 'none');
+            });
+            
+            document.getElementById('auto-layout').addEventListener('change', function() {
+                if (this.checked) {
+                    simulation.alphaTarget(0.3).restart();
+                } else {
+                    simulation.alphaTarget(0);
+                }
+            });
+        }
+        
+        // 初始化关系类型筛选
+        function initRelationFilters() {
+            const relationFiltersContainer = document.getElementById('relation-filters');
+            const relationLegendContainer = document.getElementById('relation-legend');
+            
+            // 收集所有关系类型
+            graphData.links.forEach(link => {
+                relationTypes.add(link.type);
+            });
+            
+            // 创建筛选器和图例
+            relationTypes.forEach(type => {
+                // 筛选器
+                const filterItem = document.createElement('label');
+                filterItem.innerHTML = `<input type="checkbox" name="relation" value="${type}" checked> ${type}`;
+                relationFiltersContainer.appendChild(filterItem);
+                
+                // 图例
+                const legendItem = document.createElement('div');
+                legendItem.className = 'relation-item';
+                legendItem.innerHTML = `
+                    <div class="relation-color" style="background-color: ${relationColorMap[type] || '#999'}"></div>
+                    <span>${type}</span>
+                `;
+                relationLegendContainer.appendChild(legendItem);
+            });
+        }
+        
+        // 应用筛选条件
+        function applyFilters() {
+            const selectedDomains = Array.from(document.querySelectorAll('#domain-filters input:checked'))
+                .map(input => input.value);
+                
+            const selectedRelations = Array.from(document.querySelectorAll('#relation-filters input:checked'))
+                .map(input => input.value);
+                
+            node.style('display', d => selectedDomains.includes(d.type) ? 'block' : 'none');
+            text.style('display', d => selectedDomains.includes(d.type) ? 'block' : 'none');
+            
+            // 隐藏/显示相关连线
+            link.style('display', d => {
+                const sourceVisible = selectedDomains.includes(d.source.type);
+                const targetVisible = selectedDomains.includes(d.target.type);
+                const relationVisible = selectedRelations.includes(d.type);
+                return sourceVisible && targetVisible && relationVisible ? 'block' : 'none';
+            });
+            
+            linkLabels.style('display', d => {
+                const sourceVisible = selectedDomains.includes(d.source.type);
+                const targetVisible = selectedDomains.includes(d.target.type);
+                const relationVisible = selectedRelations.includes(d.type);
+                const showLabels = document.getElementById('show-link-labels').checked;
+                return sourceVisible && targetVisible && relationVisible && showLabels ? 'block' : 'none';
+            });
+        }
+        
+        // 重置节点样式
+        function resetNodeStyles() {
+            node.classed('highlighted', false)
+                .attr('r', 8)
+                .attr('fill', d => colorMap[d.type]);
+                
+            text.classed('highlighted', false)
+                .style('font-weight', 'normal')
+                .style('font-size', '12px');
+        }
+        
+        // 拖动函数
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        // 显示节点详情
+        function showNodeDetails(event, d) {
+            currentNode = d;
+            const detailsPanel = document.querySelector('.node-details');
+            document.getElementById('detail-title').textContent = d.name;
+            document.getElementById('detail-type').textContent = typeNames[d.type] || d.type;
+            document.getElementById('detail-description').textContent = d.description;
+            
+            // 清空相关节点
+            const relatedNodesContainer = document.getElementById('related-nodes');
+            relatedNodesContainer.innerHTML = '';
+            
+            // 查找相关节点
+            const relatedLinks = graphData.links.filter(link => 
+                link.source.id === d.id || link.target.id === d.id
+            );
+            
+            const relatedNodeIds = new Set();
+            relatedLinks.forEach(link => {
+                if (link.source.id !== d.id) relatedNodeIds.add(link.source.id);
+                if (link.target.id !== d.id) relatedNodeIds.add(link.target.id);
+            });
+            
+            // 添加相关节点
+            relatedNodeIds.forEach(id => {
+                const relatedNode = graphData.nodes.find(node => node.id === id);
+                if (relatedNode) {
+                    const nodeElement = document.createElement('div');
+                    nodeElement.className = 'related-node';
+                    nodeElement.textContent = relatedNode.name;
+                    nodeElement.setAttribute('data-node-id', relatedNode.id);
+                    nodeElement.addEventListener('click', (e) => {
+                        const nodeId = parseInt(e.target.getAttribute('data-node-id'));
+                        focusOnNode(nodeId);
+                    });
+                    relatedNodesContainer.appendChild(nodeElement);
+                }
+            });
+            
+            // 显示详情面板
+            detailsPanel.style.display = 'block';
+            
+            // 高亮当前节点
+            resetNodeStyles();
+            node.filter(d => d.id === currentNode.id)
+                .classed('highlighted', true)
+                .attr('r', 14);
+            text.filter(d => d.id === currentNode.id)
+                .classed('highlighted', true);
+        }
+        
+        // 定位到特定节点
+        function focusOnNode(nodeId) {
+            const nodeData = graphData.nodes.find(n => n.id === nodeId);
+            if (!nodeData) return;
+            
+            const svg = d3.select('#knowledge-graph');
+            const width = document.getElementById('knowledge-graph').clientWidth;
+            const height = document.getElementById('knowledge-graph').clientHeight;
+            
+            // 使用保存的位置信息
+            const nodePosition = lastNodePositions[nodeId] || { x: width/2, y: height/2 };
+            
+            // 计算缩放和平移
+            const scale = 2.5;
+            const x = width / 2 - scale * nodePosition.x;
+            const y = height / 2 - scale * nodePosition.y;
+            
+            // 执行动画
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(x, y).scale(scale));
+            
+            // 高亮节点并显示详情
+            showNodeDetails(null, nodeData);
+        }
+        
+        // 初始化图谱
+        window.addEventListener('load', initKnowledgeGraph);
+        window.addEventListener('resize', initKnowledgeGraph);
+    </script>
+</body>
+</html>
